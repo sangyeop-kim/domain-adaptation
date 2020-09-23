@@ -2,4 +2,5 @@ rawdata/
 connect_info.json
 __pycache__/
 .ipynb_checkpoints/
-
+test
+data.pkl
