@@ -1,2 +1,0 @@
-recipe1 : Acc : 91.46, Prec : 27.59, Rec : 36.36, F1 : 14.29, AUC : 0.7857
-recipe2 : Acc : 91.46, Prec : 8.94, Rec : 35.48, F1 : 14.29, AUC : 0.7857
