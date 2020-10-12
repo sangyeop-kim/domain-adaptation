@@ -3,6 +3,10 @@ import torch
 import torch.nn.functional as F 
 from torch.utils.data import Dataset
 from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import StratifiedKFold
+
+import warnings
+warnings.filterwarnings('ignore')
 
 
 def load_X(recipe_no, step_no):
@@ -77,8 +81,8 @@ def load_data_cat_nan(recipe_no, step_no_list=[10, 11, 12, 13, 14],
 def sampling(maxlen, recipe_data, random_state) :
     np.random.seed(random_state)
     len_ = recipe_data.shape[0]
-    plus_choice = np.random.choice(recipe_data, maxlen - len_)
-    output = np.concatenate([recipe_data, plus_choice])
+    plus_choice = np.random.choice(np.arange(0, len(recipe_data)), maxlen - len_)
+    output = np.concatenate([recipe_data, recipe_data[plus_choice]])
     index = np.arange(len(output))
     np.random.shuffle(index)
     return output[index]
@@ -192,3 +196,41 @@ class MyVarDataSet(Dataset):
 
     def __len__(self):
         return len(self.X)
+
+
+class MultiDataset(Dataset):
+    def __init__(self, X1, y1, X2, y2):
+        self.X = np.concatenate((X1, X2))
+        self.y = np.concatenate((y1, y2)).astype(np.int64)
+        self.num = np.array([1] * len(X1) + [2] * len(X2))
+        self.X = self.preprocessing(self.X)
+        
+        index = self.shuffle()
+        self.X = self.X[index]
+        self.y = self.y[index]
+        self.num = self.num[index]
+
+    def preprocessing(self, X): # (timelen * max_features, n_data)
+        max_features = 65
+        n_data = X.shape[0]
+        timelen = int(X.shape[1] / max_features)
+
+        X = X.reshape(n_data, timelen, max_features)
+        return X
+
+    def __getitem__(self, index):
+        return self.X[index], self.y[index], self.num[index]
+
+    def __len__(self):
+        return len(self.X)
+
+    def shuffle(self):
+        index = np.arange(0, len(self.X))
+        np.random.shuffle(index)
+        return index
+
+def train_val_split(kfold, index, y1):
+    train_val = StratifiedKFold(n_splits=kfold, shuffle=True)
+    recipe1_trn_index, recipe1_val_index = next(iter(train_val.split(index, y1[index])))
+
+    return index[recipe1_trn_index], index[recipe1_val_index]
